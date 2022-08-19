@@ -31,7 +31,7 @@ class PAN_PP(nn.Module):
 
     def _upsample(self, x, size, scale=1):
         _, _, H, W = size
-        return F.interpolate(x, size=(H // scale, W // scale), mode='bilinear')
+        return F.interpolate(x, size=(int(H // scale), int(W // scale)), mode='bilinear')
 
     def forward(self,
                 imgs,
@@ -44,6 +44,7 @@ class PAN_PP(nn.Module):
                 word_masks=None,
                 img_metas=None,
                 cfg=None):
+        # print(img_metas)
         if cfg.debug:
             from IPython import embed
             embed()
@@ -111,6 +112,9 @@ class PAN_PP(nn.Module):
 
                 if x_crops is not None:
                     out_rec = self.rec_head(x_crops, gt_words)
+                    # *******************************************
+                    #print(f'gt_words:{gt_words}')#out_rec:{out_rec}         
+                    # print(f'out_rec:{out_rec.shape}         gt_words:{gt_words.shape}')
                     loss_rec = self.rec_head.loss(out_rec, gt_words,
                                                   reduce=False)
                 else:

@@ -12,36 +12,31 @@ import torch
 import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils import data
-# from coco_text import COCO_Text
+
 from .coco_text import COCO_Text
 
 EPS = 1e-6
-# synth_root_dir = './data/SynthText/'
-# synth_train_data_dir = synth_root_dir
-# synth_train_gt_path = synth_root_dir + 'gt.mat'
+synth_root_dir = './data/SynthText/'
+synth_train_data_dir = synth_root_dir
+synth_train_gt_path = synth_root_dir + 'gt.mat'
 
-# ic17_root_dir = './data/ICDAR2017MLT/'
-# ic17_train_data_dir = ic17_root_dir + 'ch8_training_images/'
-# ic17_train_gt_dir = ic17_root_dir + \
-#                     'ch8_training_localization_transcription_gt_v2/'
+ic17_root_dir = './data/ICDAR2017MLT/'
+ic17_train_data_dir = ic17_root_dir + 'ch8_training_images/'
+ic17_train_gt_dir = ic17_root_dir + \
+                    'ch8_training_localization_transcription_gt_v2/'
 
-ct_root_dir = '/opt/data/private/pan_pp.pytorch/data/'
-ct_train_data_dir = '/opt/data/private/pan_pp.pytorch/data/image/'
-ct_train_gt_path = '/opt/data/private/pan_pp.pytorch/data/label-CT.json'
+ct_root_dir = './data/COCO-Text/'
+ct_train_data_dir = ct_root_dir + 'train2014/'
+ct_train_gt_path = ct_root_dir + 'COCO_Text.json'
 
-#
-# ct_train_data_dir = r'F:\Data\GJJS-dataset\dataset\train\image/'
-# ct_train_gt_path = r'F:\Data\GJJS-dataset\dataset\train\label-CT.json'
-print(f'CT-GT-Path:{ct_train_gt_path}')
-#sftp://root@172.25.100.125:25546/opt/data/private/pan_pp.pytorch/data/label-CT.json
-# ic15_root_dir = './data/ICDAR2015/Challenge4/'
-# ic15_train_data_dir = ic15_root_dir + 'ch4_training_images/'
-# ic15_train_gt_dir = ic15_root_dir + \
-#                     'ch4_training_localization_transcription_gt/'
+ic15_root_dir = './data/ICDAR2015/Challenge4/'
+ic15_train_data_dir = ic15_root_dir + 'ch4_training_images/'
+ic15_train_gt_dir = ic15_root_dir + \
+                    'ch4_training_localization_transcription_gt/'
 
-# tt_root_dir = './data/total_text/'
-# tt_train_data_dir = tt_root_dir + 'Images/Train/'
-# tt_train_gt_dir = tt_root_dir + 'Groundtruth/Polygon/Train/'
+tt_root_dir = './data/total_text/'
+tt_train_data_dir = tt_root_dir + 'Images/Train/'
+tt_train_gt_dir = tt_root_dir + 'Groundtruth/Polygon/Train/'
 
 
 def get_img(img_path, read_type='cv2'):
@@ -58,10 +53,10 @@ def get_img(img_path, read_type='cv2'):
 
 
 def check(s):
-    # for c in s:
-    #     if c in list(string.printable[:-6]):
-    #         continue
-    #     return False
+    for c in s:
+        if c in list(string.printable[:-6]):
+            continue
+        return False
     return True
 
 
@@ -80,40 +75,37 @@ def get_ann_synth(img, gts, texts, index):
     return bboxes, words
 
 
-# def get_ann_ic17(img, gt_path):
-#     h, w = img.shape[0:2]
-#     lines = mmcv.list_from_file(gt_path)
-#     bboxes = []
-#     words = []
-#     for line in lines:
-#         line = line.encode('utf-8').decode('utf-8-sig')
-#         line = line.replace('\xef\xbb\xbf', '')
-#         gt = line.split(',')
-#         word = gt[9].replace('\r', '').replace('\n', '')
+def get_ann_ic17(img, gt_path):
+    h, w = img.shape[0:2]
+    lines = mmcv.list_from_file(gt_path)
+    bboxes = []
+    words = []
+    for line in lines:
+        line = line.encode('utf-8').decode('utf-8-sig')
+        line = line.replace('\xef\xbb\xbf', '')
+        gt = line.split(',')
+        word = gt[9].replace('\r', '').replace('\n', '')
 
-#         if len(word) == 0 or word[0] == '#':
-#             words.append('###')
-#         elif not check(word):
-#             words.append('???')
-#         else:
-#             words.append(word)
+        if len(word) == 0 or word[0] == '#':
+            words.append('###')
+        elif not check(word):
+            words.append('???')
+        else:
+            words.append(word)
 
-#         bbox = [int(gt[i]) for i in range(8)]
-#         bbox = np.array(bbox) / ([w * 1.0, h * 1.0] * 4)
-#         bboxes.append(bbox)
-#     return np.array(bboxes), words
+        bbox = [int(gt[i]) for i in range(8)]
+        bbox = np.array(bbox) / ([w * 1.0, h * 1.0] * 4)
+        bboxes.append(bbox)
+    return np.array(bboxes), words
 
 
 def get_ann_ct(img, anns):
     h, w = img.shape[0:2]
     bboxes = []
     words = []
-    # print(anns)
     for ann in anns:
-        bbox = ann['bbox'] #polygon
-        # print(bbox)
-        bbox = np.array(bbox) / ([w * 1.0, h * 1.0] * (len(bbox) // 2)) #归一化
-        # print(bbox)
+        bbox = ann['polygon']
+        bbox = np.array(bbox) / ([w * 1.0, h * 1.0] * (len(bbox) // 2))
         bboxes.append(bbox)
 
         if 'utf8_string' not in ann:
@@ -124,64 +116,64 @@ def get_ann_ct(img, anns):
                 words.append('???')
             else:
                 words.append(word)
-    # print(np.array(bboxes).shape)
+
     return np.array(bboxes), words
 
 
-# def get_ann_ic15(img, gt_path):
-#     h, w = img.shape[0:2]
-#     lines = mmcv.list_from_file(gt_path)
-#     bboxes = []
-#     words = []
-#     for line in lines:
-#         line = line.encode('utf-8').decode('utf-8-sig')
-#         line = line.replace('\xef\xbb\xbf', '')
-#         gt = line.split(',')
-#         word = gt[8].replace('\r', '').replace('\n', '')
-#         if word[0] == '#':
-#             words.append('###')
-#         else:
-#             words.append(word)
+def get_ann_ic15(img, gt_path):
+    h, w = img.shape[0:2]
+    lines = mmcv.list_from_file(gt_path)
+    bboxes = []
+    words = []
+    for line in lines:
+        line = line.encode('utf-8').decode('utf-8-sig')
+        line = line.replace('\xef\xbb\xbf', '')
+        gt = line.split(',')
+        word = gt[8].replace('\r', '').replace('\n', '')
+        if word[0] == '#':
+            words.append('###')
+        else:
+            words.append(word)
 
-#         bbox = [int(gt[i]) for i in range(8)]
-#         bbox = np.array(bbox) / ([w * 1.0, h * 1.0] * 4)
-#         bboxes.append(bbox)
-#     return np.array(bboxes), words
+        bbox = [int(gt[i]) for i in range(8)]
+        bbox = np.array(bbox) / ([w * 1.0, h * 1.0] * 4)
+        bboxes.append(bbox)
+    return np.array(bboxes), words
 
 
-# def get_ann_tt(img, gt_path):
-#     h, w = img.shape[0:2]
-#     bboxes = []
-#     words = []
+def get_ann_tt(img, gt_path):
+    h, w = img.shape[0:2]
+    bboxes = []
+    words = []
 
-#     data = scio.loadmat(gt_path)
-#     data_polygt = data['polygt']
-#     for i, lines in enumerate(data_polygt):
-#         X = np.array(lines[1])
-#         Y = np.array(lines[3])
+    data = scio.loadmat(gt_path)
+    data_polygt = data['polygt']
+    for i, lines in enumerate(data_polygt):
+        X = np.array(lines[1])
+        Y = np.array(lines[3])
 
-#         point_num = len(X[0])
-#         word = lines[4]
-#         if len(word) == 0:
-#             word = '???'
-#         else:
-#             word = word[0]
-#             # word = word[0].encode("utf-8")
+        point_num = len(X[0])
+        word = lines[4]
+        if len(word) == 0:
+            word = '???'
+        else:
+            word = word[0]
+            # word = word[0].encode("utf-8")
 
-#         if word == '#':
-#             word = '###'
+        if word == '#':
+            word = '###'
 
-#         words.append(word)
+        words.append(word)
 
-#         arr = np.concatenate([X, Y]).T
-#         bbox = []
-#         for i in range(point_num):
-#             bbox.append(arr[i][0])
-#             bbox.append(arr[i][1])
-#         bbox = np.asarray(bbox) / ([w * 1.0, h * 1.0] * point_num)
-#         bboxes.append(bbox)
+        arr = np.concatenate([X, Y]).T
+        bbox = []
+        for i in range(point_num):
+            bbox.append(arr[i][0])
+            bbox.append(arr[i][1])
+        bbox = np.asarray(bbox) / ([w * 1.0, h * 1.0] * point_num)
+        bboxes.append(bbox)
 
-#     return bboxes, words
+    return bboxes, words
 
 
 def random_horizontal_flip(imgs):
@@ -344,7 +336,7 @@ def shrink(bboxes, rate, max_shr=20):
 
     return shrinked_bboxes
 
-
+### 改这
 def get_vocabulary(voc_type, EOS='EOS', PADDING='PAD', UNKNOWN='UNK'):
     if voc_type == 'LOWERCASE':
         voc = list(string.digits + string.ascii_lowercase)
@@ -353,7 +345,7 @@ def get_vocabulary(voc_type, EOS='EOS', PADDING='PAD', UNKNOWN='UNK'):
     elif voc_type == 'ALLCASES_SYMBOLS':
         voc = list(string.printable[:-6])
     elif voc_type == 'CHINESE':
-        with open('/opt/data/private/pan_pp.pytorch/high_fre.txt', 'r',encoding='utf-8') as f:  # 打开文件
+        with open('/opt/data/private/pan_pp.pytorch/chars.txt', 'r') as f:  # 打开文件
             data = f.read()  # 读取文件
             voc = [i for i in data]
     else:
@@ -400,160 +392,149 @@ class PAN_PP_Joint_Train(data.Dataset):
         self.texts = {}
 
         self.img_num = 0
-        
-        # # synth
-        # data = scio.loadmat(synth_train_gt_path)
-        # self.img_paths['synth'] = data['imnames'][0]
-        # self.gts['synth'] = data['wordBB'][0]
-        # self.texts['synth'] = data['txt'][0]
-        # self.img_num += len(self.img_paths['synth'])
+        # synth
+        data = scio.loadmat(synth_train_gt_path)
+        self.img_paths['synth'] = data['imnames'][0]
+        self.gts['synth'] = data['wordBB'][0]
+        self.texts['synth'] = data['txt'][0]
+        self.img_num += len(self.img_paths['synth'])
 
-        # # ic17
-        # self.img_paths['ic17'] = []
-        # self.gts['ic17'] = []
-        # img_names = [
-        #     img_name
-        #     for img_name in mmcv.utils.scandir(ic17_train_data_dir, '.jpg')
-        # ]
-        # img_names.extend([
-        #     img_name
-        #     for img_name in mmcv.utils.scandir(ic17_train_data_dir, '.png')
-        # ])
-        # for idx, img_name in enumerate(img_names):
-        #     img_path = ic17_train_data_dir + img_name
-        #     self.img_paths['ic17'].append(img_path)
+        # ic17
+        self.img_paths['ic17'] = []
+        self.gts['ic17'] = []
+        img_names = [
+            img_name
+            for img_name in mmcv.utils.scandir(ic17_train_data_dir, '.jpg')
+        ]
+        img_names.extend([
+            img_name
+            for img_name in mmcv.utils.scandir(ic17_train_data_dir, '.png')
+        ])
+        for idx, img_name in enumerate(img_names):
+            img_path = ic17_train_data_dir + img_name
+            self.img_paths['ic17'].append(img_path)
 
-        #     gt_name = 'gt_' + img_name.split('.')[0] + '.txt'
-        #     gt_path = ic17_train_gt_dir + gt_name
-        #     self.gts['ic17'].append(gt_path)
-        # self.img_num += len(self.img_paths['ic17'])
+            gt_name = 'gt_' + img_name.split('.')[0] + '.txt'
+            gt_path = ic17_train_gt_dir + gt_name
+            self.gts['ic17'].append(gt_path)
+        self.img_num += len(self.img_paths['ic17'])
 
         # coco_text
         self.ct = COCO_Text(ct_train_gt_path)
-        self.img_paths['ct'] = self.ct.getImgIds( ) #imgIds=self.ct.train,catIds=[('legibility','legible')]
+        self.img_paths['ct'] = self.ct.getImgIds(imgIds=self.ct.train,
+                                                 catIds=[('legibility',
+                                                          'legible')])
         self.img_num += len(self.img_paths['ct'])
-        
-        # # ic15
-        # self.img_paths['ic15'] = []
-        # self.gts['ic15'] = []
-        # img_names = [
-        #     img_name
-        #     for img_name in mmcv.utils.scandir(ic15_train_data_dir, '.jpg')
-        # ]
-        # img_names.extend([
-        #     img_name
-        #     for img_name in mmcv.utils.scandir(ic15_train_data_dir, '.png')
-        # ])
-        # for idx, img_name in enumerate(img_names):
-        #     img_path = ic15_train_data_dir + img_name
-        #     self.img_paths['ic15'].append(img_path)
 
-        #     gt_name = 'gt_' + img_name.split('.')[0] + '.txt'
-        #     gt_path = ic15_train_gt_dir + gt_name
-        #     self.gts['ic15'].append(gt_path)
-        # self.img_num += len(self.img_paths['ic15'])
+        # ic15
+        self.img_paths['ic15'] = []
+        self.gts['ic15'] = []
+        img_names = [
+            img_name
+            for img_name in mmcv.utils.scandir(ic15_train_data_dir, '.jpg')
+        ]
+        img_names.extend([
+            img_name
+            for img_name in mmcv.utils.scandir(ic15_train_data_dir, '.png')
+        ])
+        for idx, img_name in enumerate(img_names):
+            img_path = ic15_train_data_dir + img_name
+            self.img_paths['ic15'].append(img_path)
 
-        # # tt
-        # self.img_paths['tt'] = []
-        # self.gts['tt'] = []
-        # img_names = [
-        #     img_name
-        #     for img_name in mmcv.utils.scandir(tt_train_data_dir, '.jpg')
-        # ]
-        # img_names.extend([
-        #     img_name
-        #     for img_name in mmcv.utils.scandir(tt_train_data_dir, '.png')
-        # ])
+            gt_name = 'gt_' + img_name.split('.')[0] + '.txt'
+            gt_path = ic15_train_gt_dir + gt_name
+            self.gts['ic15'].append(gt_path)
+        self.img_num += len(self.img_paths['ic15'])
 
-        # for idx, img_name in enumerate(img_names):
-        #     img_path = tt_train_data_dir + img_name
-        #     self.img_paths['tt'].append(img_path)
+        # tt
+        self.img_paths['tt'] = []
+        self.gts['tt'] = []
+        img_names = [
+            img_name
+            for img_name in mmcv.utils.scandir(tt_train_data_dir, '.jpg')
+        ]
+        img_names.extend([
+            img_name
+            for img_name in mmcv.utils.scandir(tt_train_data_dir, '.png')
+        ])
 
-        #     gt_name = 'poly_gt_' + img_name.split('.')[0] + '.mat'
-        #     gt_path = tt_train_gt_dir + gt_name
-        #     self.gts['tt'].append(gt_path)
-        # self.img_num += len(self.img_paths['tt'])
+        for idx, img_name in enumerate(img_names):
+            img_path = tt_train_data_dir + img_name
+            self.img_paths['tt'].append(img_path)
 
-        self.voc, self.char2id, self.id2char = get_vocabulary('CHINESE')
+            gt_name = 'poly_gt_' + img_name.split('.')[0] + '.mat'
+            gt_path = tt_train_gt_dir + gt_name
+            self.gts['tt'].append(gt_path)
+        self.img_num += len(self.img_paths['tt'])
+
+        self.voc, self.char2id, self.id2char = get_vocabulary('LOWERCASE')
         self.max_word_num = 200
         self.max_word_len = 32
         print('reading type: %s.' % self.read_type)
-        print(f'self.img_num={len(self.img_paths["ct"])}')
 
     def __len__(self):
         return self.img_num
 
-    # def load_synth_single(self, index):
-    #     img_path = synth_train_data_dir + self.img_paths['synth'][index][0]
-    #     img = get_img(img_path, self.read_type)
-    #     bboxes, words = get_ann_synth(img, self.gts['synth'],
-    #                                   self.texts['synth'], index)
-    #     return img, bboxes, words
+    def load_synth_single(self, index):
+        img_path = synth_train_data_dir + self.img_paths['synth'][index][0]
+        img = get_img(img_path, self.read_type)
+        bboxes, words = get_ann_synth(img, self.gts['synth'],
+                                      self.texts['synth'], index)
+        return img, bboxes, words
 
-    # def load_ic17_single(self, index):
-    #     img_path = self.img_paths['ic17'][index]
-    #     gt_path = self.gts['ic17'][index]
-    #     img = get_img(img_path, self.read_type)
-    #     bboxes, words = get_ann_ic17(img, gt_path)
-    #     return img, bboxes, words
+    def load_ic17_single(self, index):
+        img_path = self.img_paths['ic17'][index]
+        gt_path = self.gts['ic17'][index]
+        img = get_img(img_path, self.read_type)
+        bboxes, words = get_ann_ic17(img, gt_path)
+        return img, bboxes, words
 
     def load_ct_single(self, index):
-        # print(self.img_paths['ct'][index])
         img_meta = self.ct.loadImgs(self.img_paths['ct'][index])[0]
         img_path = ct_train_data_dir + img_meta['file_name']
         img = get_img(img_path, self.read_type)
 
         annIds = self.ct.getAnnIds(imgIds=img_meta['id'])
         anns = self.ct.loadAnns(annIds)
-        # print(anns)
         bboxes, words = get_ann_ct(img, anns)
-        # print(bboxes.shape)
+
         return img, bboxes, words
 
-    # def load_ic15_single(self, index):
-    #     img_path = self.img_paths['ic15'][index]
-    #     gt_path = self.gts['ic15'][index]
-    #     img = get_img(img_path, self.read_type)
-    #     bboxes, words = get_ann_ic15(img, gt_path)
-    #     return img, bboxes, words
+    def load_ic15_single(self, index):
+        img_path = self.img_paths['ic15'][index]
+        gt_path = self.gts['ic15'][index]
+        img = get_img(img_path, self.read_type)
+        bboxes, words = get_ann_ic15(img, gt_path)
+        return img, bboxes, words
 
-    # def load_tt_single(self, index):
-    #     img_path = self.img_paths['tt'][index]
-    #     gt_path = self.gts['tt'][index]
-    #     img = get_img(img_path, self.read_type)
-    #     bboxes, words = get_ann_tt(img, gt_path)
-    #     return img, bboxes, words
+    def load_tt_single(self, index):
+        img_path = self.img_paths['tt'][index]
+        gt_path = self.gts['tt'][index]
+        img = get_img(img_path, self.read_type)
+        bboxes, words = get_ann_tt(img, gt_path)
+        return img, bboxes, words
 
     def __getitem__(self, index):
-        # print(f'Current index:{index}')
-        # index = 83
-        # if int(index) in range(80,90): #出bug 需要替换84-86的图
-        #     print(f'替换{index}为81')
-        #     index = 81
-        # if int(index) in range(100,120): #出bug 需要替换84-86的图
-        #     print(f'替换{index}为81')
-        #     index = 95
-        # index = 199
-        # print(f'Current index:{index}')
-        # if self.debug:
-        #     # index = 0
-        #     img, bboxes, words = self.load_ic15_single(index)
-        # elif choice < 1.0 / 5.0:
-        #     index = random.randint(0, len(self.img_paths['synth']) - 1)
-        #     img, bboxes, words = self.load_synth_single(index)
-        # elif choice < 2.0 / 5.0:
-        #     index = random.randint(0, len(self.img_paths['ic17']) - 1)
-        #     img, bboxes, words = self.load_ic17_single(index)
-        # elif choice < 3.0 / 5.0:
-        # index = random.randint(0, len(self.img_paths['ct']) - 1)
-        # print(f'index:{index}')
-        img, bboxes, words = self.load_ct_single(index)
-        # elif choice < 4.0 / 5.0:
-        #     index = random.randint(0, len(self.img_paths['ic15']) - 1)
-        #     img, bboxes, words = self.load_ic15_single(index)
-        # else:
-        #     index = random.randint(0, len(self.img_paths['tt']) - 1)
-        #     img, bboxes, words = self.load_tt_single(index)
+        choice = random.random()
+
+        if self.debug:
+            # index = 0
+            img, bboxes, words = self.load_ic15_single(index)
+        elif choice < 1.0 / 5.0:
+            index = random.randint(0, len(self.img_paths['synth']) - 1)
+            img, bboxes, words = self.load_synth_single(index)
+        elif choice < 2.0 / 5.0:
+            index = random.randint(0, len(self.img_paths['ic17']) - 1)
+            img, bboxes, words = self.load_ic17_single(index)
+        elif choice < 3.0 / 5.0:
+            index = random.randint(0, len(self.img_paths['ct']) - 1)
+            img, bboxes, words = self.load_ct_single(index)
+        elif choice < 4.0 / 5.0:
+            index = random.randint(0, len(self.img_paths['ic15']) - 1)
+            img, bboxes, words = self.load_ic15_single(index)
+        else:
+            index = random.randint(0, len(self.img_paths['tt']) - 1)
+            img, bboxes, words = self.load_tt_single(index)
 
         if len(bboxes) > self.max_word_num:
             bboxes = bboxes[:self.max_word_num]
@@ -563,15 +544,12 @@ class PAN_PP_Joint_Train(data.Dataset):
                            self.char2id['PAD'],
                            dtype=np.int32)
         word_mask = np.zeros((self.max_word_num + 1,), dtype=np.int32)
-        # print(words)
         for i, word in enumerate(words):
-            # print(word)
             if word == '###':
                 continue
             if word == '???':
                 continue
-            # word = word.lower()
-            # print(word)
+            word = word.lower()
             gt_word = np.full((self.max_word_len,),
                               self.char2id['PAD'],
                               dtype=np.int)
@@ -582,7 +560,6 @@ class PAN_PP_Joint_Train(data.Dataset):
                     gt_word[j] = self.char2id[char]
                 else:
                     gt_word[j] = self.char2id['UNK']
-            # print(gt_word)
             if len(word) > self.max_word_len - 1:
                 gt_word[-1] = self.char2id['EOS']
             else:
@@ -603,14 +580,10 @@ class PAN_PP_Joint_Train(data.Dataset):
                                      (bboxes[i].shape[0] // 2)),
                         (bboxes[i].shape[0] // 2, 2)).astype('int32')
             else:
-                # print(img.shape[1])
-                # print(img.shape[0])
-                # print(f'bshape{bboxes.shape}')
-
-                # print(([img.shape[1], img.shape[0]] * (bboxes.shape[1] // 2)))
-                # print(bboxes.shape[1])
-                
-                bboxes = np.reshape(bboxes * ([img.shape[1], img.shape[0]] * (bboxes.shape[1] // 2)),(bboxes.shape[0], -1, 2)).astype('int32')
+                bboxes = np.reshape(
+                    bboxes * ([img.shape[1], img.shape[0]] *
+                              (bboxes.shape[1] // 2)),
+                    (bboxes.shape[0], -1, 2)).astype('int32')
             for i in range(len(bboxes)):
                 cv2.drawContours(gt_instance, [bboxes[i]], -1, i + 1, -1)
                 if words[i] == '###':
@@ -665,7 +638,7 @@ class PAN_PP_Joint_Train(data.Dataset):
         img = transforms.ToTensor()(img)
         img = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                    std=[0.229, 0.224, 0.225])(img)
-        # print(img.shape)
+
         gt_text = torch.from_numpy(gt_text).long()
         gt_kernels = torch.from_numpy(gt_kernels).long()
         training_mask = torch.from_numpy(training_mask).long()
@@ -695,15 +668,14 @@ if __name__ == '__main__':
                                      short_size=736,
                                      kernel_scale=0.5,
                                      read_type='pil',
-                                     with_rec=False)
+                                     with_rec=True)
     train_loader = torch.utils.data.DataLoader(data_loader,
                                                batch_size=8,
                                                shuffle=False,
-                                               num_workers=1,
+                                               num_workers=8,
                                                drop_last=True,
                                                pin_memory=True)
     for item in train_loader:
         print('-' * 20)
-        for i, (k, v) in enumerate(item.items()):
-            # print(f'k: {k}, v.shape: {v.shape}')
-            print(i)
+        for k, v in item.items():
+            print(f'k: {k}, v.shape: {v.shape}')

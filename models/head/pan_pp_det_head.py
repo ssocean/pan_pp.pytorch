@@ -89,7 +89,10 @@ class PAN_PP_DetHead(nn.Module):
         # image size
         org_img_size = img_meta['org_img_size'][0]
         img_size = img_meta['img_size'][0]
-
+        # print(org_img_size.numpy().tolist())
+        # print(img_size.numpy().tolist())
+        org_img_size = org_img_size.numpy().tolist()
+        img_size = img_size.numpy().tolist()
         label_num = np.max(label) + 1
         scale = (float(org_img_size[1]) / float(img_size[1]),
                  float(org_img_size[0]) / float(img_size[0]))

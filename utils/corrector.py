@@ -48,6 +48,7 @@ class Corrector:
         return prefix_s
 
     def correct(self, word, score, voc=None):
+        # print(voc is None)
         if len(word) < self.len_thres:
             return None
         if score > self.score_thres:

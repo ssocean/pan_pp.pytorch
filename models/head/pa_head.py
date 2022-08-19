@@ -111,7 +111,7 @@ class PA_Head(nn.Module):
                 br = np.max(points, axis=0) + 1
                 bboxes_h[0, i] = (tl[0], tl[1], br[0], br[1])
                 instances[0].append(i)
-
+            # text box type
             if cfg.test_cfg.bbox_type == 'rect':
                 rect = cv2.minAreaRect(points[:, ::-1])
                 bbox = cv2.boxPoints(rect) * scale

@@ -1,6 +1,8 @@
+# coding=utf-8
 from __future__ import absolute_import, division, print_function
 
 import datetime
+from importlib import reload
 import json
 import os
 
@@ -12,6 +14,10 @@ from matplotlib.path import Path
 
 __author__ = 'andreasveit'
 __version__ = '1.1'
+
+# import sys
+# reload(sys)
+# sys.setdefaultencoding('utf-8')
 # Interface for accessing the COCO-Text dataset.
 
 # COCO-Text is a large dataset designed for text detection and recognition.
@@ -70,7 +76,8 @@ class COCO_Text:
             assert os.path.isfile(annotation_file), 'file does not exist'
             print('loading annotations into memory...')
             time_t = datetime.datetime.utcnow()
-            dataset = json.load(open(annotation_file, 'r'))
+            dataset = json.load(open(annotation_file, 'r', encoding='utf-8'))
+            # print(dataset['anns'])
             print(datetime.datetime.utcnow() - time_t)
             self.dataset = dataset
             self.createIndex()
@@ -260,7 +267,7 @@ class COCO_Text:
         print('Loading and preparing results...     ')
         time_t = datetime.datetime.utcnow()
         if type(resFile) == str:
-            anns = json.load(open(resFile))
+            anns = json.load(open(resFile,encoding='utf-8'))
         else:
             anns = resFile
         assert type(anns) == list, 'results in not an array of objects'
@@ -291,3 +298,8 @@ class COCO_Text:
               ((datetime.datetime.utcnow() - time_t).total_seconds()))
 
         return res
+
+# CT = COCO_Text(r'F:\Data\GJJS-dataset\dataset\train\label-CT.json')
+# img_paths = {}
+# img_paths['ct'] = CT.getImgIds(imgIds=CT.train,catIds=[('legibility',
+#                                                           'legible')])

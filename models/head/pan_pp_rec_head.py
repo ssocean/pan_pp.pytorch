@@ -22,7 +22,7 @@ class PAN_PP_RecHead(nn.Module):
         self.char2id = char2id
         self.id2char = id2char
         self.beam_size = beam_size
-
+        print(id2char)
         self.conv = nn.Conv2d(input_dim,
                               hidden_dim,
                               kernel_size=3,
@@ -127,6 +127,9 @@ class PAN_PP_RecHead(nn.Module):
         mask = target != self.char2id['PAD']
         input = input.contiguous().view(-1, D)
         target = target.contiguous().view(-1)
+        # print(input)
+        # print(torch.argmax(input,dim=1))
+        # print(target)
         loss_rec = F.cross_entropy(input, target, reduce=False)
         loss_rec = loss_rec.view(N, L)
         loss_rec = torch.sum(loss_rec * mask.float(), dim=1) / (
@@ -146,6 +149,7 @@ class PAN_PP_RecHead(nn.Module):
         if self.training:
             return self.decoder(x, holistic_feature, target)
         else:
+            # print(self.beam_size)
             if self.beam_size <= 1:
                 return self.decoder.forward_test(x, holistic_feature)
             else:
@@ -181,7 +185,8 @@ class Decoder(nn.Module):
         self.num_layers = num_layers
         self.vocab_size = len(voc)
         self.START_TOKEN = char2id['EOS']
-        self.END_TOKEN = char2id['EOS']
+        self.END_TOKEN = char2id['EOS'] 
+
         self.NULL_TOKEN = char2id['PAD']
         self.id2char = id2char
         self.lstm_u = nn.ModuleList()
@@ -248,18 +253,24 @@ class Decoder(nn.Module):
             word_score = 0
             for j, char_id in enumerate(seqs[i]):
                 char_id = int(char_id)
-                if char_id == self.END_TOKEN:
-                    break
+                # print(f'char_id:{char_id}')
+                # print(f'self.END_TOKEN:{self.END_TOKEN}')
+                if char_id == self.END_TOKEN: 
+                    continue
+                    #break
                 if self.id2char[char_id] in ['PAD', 'UNK']:
                     continue
-                word += self.id2char[char_id]
+                current_char = self.id2char[char_id]
+                # print(current_char)
+                word += current_char
                 if seq_scores is not None:
                     word_score += seq_scores[i, j]
             words.append(word)
             if seq_scores is not None:
                 word_scores.append(word_score / (len(word) + EPS))
+        # print(words)
         return words, word_scores
-
+    # Test 的rec head代码
     def forward_test(self, x, holistic_feature):
         batch_size, feature_dim, H, W = x.size()
         x_flatten = x.view(batch_size, feature_dim, H * W).permute(0, 2, 1)
@@ -298,7 +309,7 @@ class Decoder(nn.Module):
             end = end & (idx != self.START_TOKEN)
             if torch.sum(end) == 0:
                 break
-
+        # print(seq.shape)
         words, word_scores = self.to_words(seq[:, 1:], seq_score[:, 1:])
 
         return words, word_scores

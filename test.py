@@ -1,8 +1,11 @@
+# coding=utf-8
 import argparse
+import imp
 import json
 import os
 import os.path as osp
 import sys
+from time import sleep
 
 import torch
 from mmcv import Config
@@ -11,7 +14,7 @@ from dataset import build_data_loader
 from models import build_model
 from models.utils import fuse_module
 from utils import AverageMeter, Corrector, ResultFormat, Visualizer
-
+from tqdm import tqdm
 
 def model_structure(model):
     blank = ' '
@@ -78,30 +81,34 @@ def test(test_loader, model, cfg):
             total_time=AverageMeter(500))
 
     print('Start testing %d images' % len(test_loader))
-    for idx, data in enumerate(test_loader):
-        print('Testing %d/%d\r' % (idx, len(test_loader)), end='', flush=True)
-
+    for idx, data in enumerate(tqdm(test_loader)):
+        # print(f'Testing {idx}/{len(test_loader)}\r', end='', flush=True)
+        # sleep(0.1)
         # prepare input
         data['imgs'] = data['imgs'].cuda()
         data.update(dict(cfg=cfg))
-
+        # print('data length:'+str(len(data)))
+        # print(data)
         # forward
         with torch.no_grad():
             outputs = model(**data)
-
+        print(outputs['bboxes'])
+        print(outputs['words'])
         if cfg.report_speed:
             report_speed(outputs, speed_meters)
         # post process of recognition
         if with_rec:
+            continue
             outputs = pp.process(data['img_metas'], outputs)
-
+        
         # save result
         rf.write_result(data['img_metas'], outputs)
 
         # visualize
         if cfg.vis:
             vis.process(data['img_metas'], outputs)
-
+        # sleep(2)
+        
     print('Done!')
 
 
@@ -113,7 +120,8 @@ def main(args):
     cfg.update(dict(debug=args.debug))
     cfg.data.test.update(dict(debug=args.debug))
     print(json.dumps(cfg._cfg_dict, indent=4))
-
+    # *******************************************************************
+    # Char2ID
     # data loader
     data_loader = build_data_loader(cfg.data.test)
     test_loader = torch.utils.data.DataLoader(
@@ -122,6 +130,7 @@ def main(args):
         shuffle=False,
         num_workers=2,
     )
+    # *******************************************************************
     # model
     if hasattr(cfg.model, 'recognition_head'):
         cfg.model.recognition_head.update(
@@ -158,11 +167,12 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')
-    parser.add_argument('config', help='config file path')
-    parser.add_argument('checkpoint', nargs='?', type=str, default=None)
+    parser.add_argument('--config', help='config file path')
+    parser.add_argument('--checkpoint', nargs='?', type=str, default=None)
     parser.add_argument('--report_speed', action='store_true')
     parser.add_argument('--vis', action='store_true')
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
-
+    args.config = 'config/pan_pp/pan_pp_r18_DAR.py'
+    args.checkpoint = 'checkpoints/pan_pp_r18_DAR/checkpoint.pth.tar'
     main(args)

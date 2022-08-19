@@ -59,6 +59,8 @@ def train(train_loader, model, optimizer, epoch, start_iter, cfg):
 
         # forward
         outputs = model(**data)
+        # *************************************************************************
+        # print(outputs)
 
         # detection loss
         loss_text = torch.mean(outputs['loss_text'])
